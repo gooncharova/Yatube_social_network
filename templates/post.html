@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Профиль пользователя{% endblock %}
+{% block content %}
+{% load user_filters %}
+
+    <main role="main" class="container">
+        <div class="row">
+            <div class="col-md-3 mb-3 mt-1">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="h2">
+                            {{ author.get_full_name }}
+                        </div>
+                        <div class="h3 text-muted">
+                            @{{ author.username }}
+                        </div>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="h6 text-muted">
+                                Подписчиков: {{ author.following.count }} <br/>
+                                Подписан: {{ user.follower.count }}
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="h6 text-muted">
+                                Записей: {{ author.author_posts.count }}
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+
+                {% include "post_item.html" with post=post %}
+                {% include "comments.html" %}
+                <div class="h6 text-muted">
+                    Комментариев: {{ post.comments_post.count }}
+                </div>
+            </div>
+        </div>
+    </main>
+
+{% endblock %}
