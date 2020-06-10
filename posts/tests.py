@@ -33,7 +33,7 @@ class Tests(TestCase):
         self.assertEqual(response.status_code, 200, msg="Пост не создан!")
 
     def test_not_auth_user_new_post(self):
-        response = self.client.get("/new/", follow=True)
+        response = self.client.get(reverse("new_post"), follow=True)
         self.assertRedirects(response, "/auth/login/?next=/new/",
                              msg_prefix="Неавторизованный пользователь "
                              "не перенаправлен на страницу входа!")

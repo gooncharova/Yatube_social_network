@@ -2,8 +2,8 @@
 
     <!-- Отображение картинки -->
     {% load thumbnail %}
-    {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
-    <img class="card-img" src="{{ im.url }}" />
+        {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+        <img class="card-img" src="{{ im.url }}" />
     {% endthumbnail %}
     <!-- Отображение текста поста -->
     <div class="card-body">

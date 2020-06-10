@@ -4,9 +4,9 @@
     <div class="container">
         {% include "menu.html" with index=True %}
         <h1> Посты подписок </h1>
-            {% for post in page %}
-                {% include "post_item.html" with post=post %}
-            {% endfor %}
+        {% for post in page %}
+            {% include "post_item.html" with post=post %}
+        {% endfor %}
     </div>
     {% if page.has_other_pages %}
         {% include "paginator.html" with items=page paginator=paginator %}
