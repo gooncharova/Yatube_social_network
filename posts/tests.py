@@ -41,7 +41,7 @@ class Tests(TestCase):
     @override_settings(CACHES=DUMMY_CACHE)
     def test_new_post_is_exist(self):
         responses = [
-            self.client.get("/"),
+            self.client.get(reverse("index")),
             self.client.get(
                 reverse("profile", kwargs={"username": self.user})),
             self.client.get(reverse("post", kwargs={"username": self.user,
@@ -60,7 +60,7 @@ class Tests(TestCase):
         self.post.text = "Пост изменен"
         self.post.save()
         responses = [
-            self.client.get("/"),
+            self.client.get(reverse("index")),
             self.client.get(
                 reverse("profile", kwargs={"username": self.user})),
             self.client.get(reverse("post", kwargs={"username": self.user,
@@ -104,7 +104,7 @@ class TestImage(TestCase):
 
     def test_image_is_exist(self):
         responses = [
-            self.client.get("/"),
+            self.client.get(reverse("index")),
             self.client.get(
                 reverse("profile", kwargs={"username": self.user})),
             self.client.get(
@@ -140,11 +140,11 @@ class TestKacheCache(TestCase):
         self.client.force_login(self.user)
 
     def test_kache(self):
-        response = self.client.get("/")
+        response = self.client.get(reverse("index"))
         self.assertNotContains(response, "Проверка кэша",
                                msg_prefix="Пост отобразился раньше, чем нужно")
         time.sleep(20)
-        response = self.client.get("/")
+        response = self.client.get(reverse("index"))
         self.assertContains(response, "Проверка кэша",
                             msg_prefix="Пост не отобразился!")
 
@@ -182,13 +182,13 @@ class TestFollow(TestCase):
         self.post = Post.objects.create(
             text="Проверка подписок", author=self.author)
         self.client.force_login(self.user)
-        response = self.client.get("/follow/")
+        response = self.client.get(reverse("follow_index"), follow=True)
         self.assertNotContains(response, "Проверка подписок",
                                msg_prefix="На странице подписок найден пост "
                                "автора, на которого не подписан пользователь")
         self.follow = Follow.objects.create(
             user=self.user, author=self.author)
-        response = self.client.get("/follow/")
+        response = self.client.get(reverse("follow_index"), follow=True)
         self.assertContains(response, "Проверка подписок",
                             msg_prefix="На странице подписок не найден пост "
                             "автора, на которого подписан пользователь")
