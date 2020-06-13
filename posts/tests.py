@@ -139,9 +139,9 @@ class TestImage(TestCase):
                              "изображением.", msg_prefix="Защита от не-"
                              "картинок не работает!")
 
-        def tearDown(self):
-            self.image.close()
-            self.not_image.close()
+    def tearDown(self):
+        self.image.close()
+        self.not_image.close()
 
 
 class TestCache(TestCase):
