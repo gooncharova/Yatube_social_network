@@ -1,9 +1,12 @@
+import tempfile
 import time
 
 from django.shortcuts import reverse
 from django.test import Client, TestCase, override_settings
 
-from .models import Group, Post, User, Follow
+from PIL import Image
+
+from .models import Follow, Group, Post, User
 
 DUMMY_CACHE = {
     "default": {
@@ -89,10 +92,14 @@ class TestImage(TestCase):
             text="Проверка изображений", author=self.user)
         post_edit_data = reverse("post_edit", kwargs={
             "username": self.user, "post_id": self.post.pk})
-        with open("media/posts/test_img.jpg", "rb") as img:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            image = Image.new("RGB", (200, 200), "white")
+            image.save(f, "PNG")
+            self.image = open(f.name, mode="rb")
             self.client.post(post_edit_data,
                              {"author": self.user,
-                              "text": "Прикрепляем изображение", "image": img,
+                              "text": "Прикрепляем изображение",
+                              "image": self.image,
                               "group": self.group.pk})
 
     def test_post_has_image(self):
@@ -102,6 +109,7 @@ class TestImage(TestCase):
         self.assertContains(response, "img class=", status_code=200,
                             msg_prefix="На странице нет тега <img>!")
 
+    @override_settings(CACHES=DUMMY_CACHE)
     def test_image_is_exist(self):
         responses = [
             self.client.get(reverse("index")),
@@ -118,19 +126,25 @@ class TestImage(TestCase):
     def test_not_image_protection(self):
         post_edit_data = reverse("post_edit", kwargs={
             "username": self.user, "post_id": self.post.pk})
-        with open("media/posts/i_am_not_img.pdf", "rb") as not_img:
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as f:
+            f.write(b"Test text")
+            self.not_image = open(f.name, "rb")
             response = self.client.post(post_edit_data,
                                         {"author": self.user,
                                          "text": "Прикрепляем не изображение",
-                                         "image": not_img})
+                                         "image": self.not_image})
         self.assertFormError(response, "form", "image",
                              "Загрузите правильное изображение. Файл, который "
                              "вы загрузили, поврежден или не является "
                              "изображением.", msg_prefix="Защита от не-"
                              "картинок не работает!")
 
+        def tearDown(self):
+            self.image.close()
+            self.not_image.close()
 
-class TestKacheCache(TestCase):
+
+class TestCache(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
@@ -139,10 +153,12 @@ class TestKacheCache(TestCase):
             text="Проверка кэша", author=self.user)
         self.client.force_login(self.user)
 
-    def test_kache(self):
+    def test_cache_post_is_absent(self):
         response = self.client.get(reverse("index"))
         self.assertNotContains(response, "Проверка кэша",
                                msg_prefix="Пост отобразился раньше, чем нужно")
+
+    def test_cache_post_is_present(self):
         time.sleep(20)
         response = self.client.get(reverse("index"))
         self.assertContains(response, "Проверка кэша",
@@ -157,26 +173,34 @@ class TestFollow(TestCase):
         self.author = User.objects.create_user(
             username="TestAuthor", password="Qwerty2")
 
-    def test_auth_follower(self):
+    def test_not_auth_follow(self):
         response = self.client.get(
             reverse("profile_follow", kwargs={"username": self.author}),
             follow=True)
         self.assertRedirects(response, "/auth/login/?next=/TestAuthor/follow/",
                              msg_prefix="Неавторизованный пользователь "
                              "имеет возможность подписки!")
+
+    def test_auth_follow(self):
         self.client.force_login(self.user)
-        responses = [
-            self.client.get(
-                reverse("profile_follow", kwargs={"username": self.user}),
-                follow=True),
-            self.client.get(
-                reverse("profile_unfollow", kwargs={"username": self.user}),
-                follow=True),
-        ]
-        for response in responses:
-            self.assertRedirects(response, "/follow/",
-                                 msg_prefix="Авторизованному пользователю "
-                                 "недоступна подписка/отписка!")
+        response = self.client.get(
+            reverse("profile_follow", kwargs={"username": self.user}),
+            follow=True)
+        self.assertRedirects(response, "/follow/",
+                             msg_prefix="Авторизованному пользователю "
+                             "недоступна подписка!")
+
+    def test_auth_unfollow(self):
+        self.client.force_login(self.user)
+        self.client.get(
+            reverse("profile_follow", kwargs={"username": self.user}),
+            follow=True)
+        response = self.client.get(
+            reverse("profile_unfollow", kwargs={"username": self.user}),
+            follow=True)
+        self.assertRedirects(response, "/follow/",
+                             msg_prefix="Авторизованному пользователю "
+                             "недоступна отписка!")
 
     def test_new_post_follow(self):
         self.post = Post.objects.create(
@@ -200,7 +224,7 @@ class TestComments(TestCase):
         self.user = User.objects.create_user(
             username="TestUser", password="Qwerty")
         self.post = Post.objects.create(
-            text="Проверка кэша", author=self.user)
+            text="Проверка комментариев", author=self.user)
 
     def test_only_auth_user_can_comments(self):
         response = self.client.get(
